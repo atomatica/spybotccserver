@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# Capture MPEG-2 stream from firewire device using firewirecapture piping to stdin
+# Convert stream to MPEG-4
+# Stream output over HTTP
+#
+firewirecapture -r 1 | cvlc stream:///dev/stdin --sout '#transcode{vcodec=mp4v,acodec=mp4a,vb=3000,ab=256,venc=ffmpeg{keyint=80,hurry-up,vt=800000}}:std{access=http,mux=ts,dst=0.0.0.0:8000/stream.mp4}' --ttl 14
+

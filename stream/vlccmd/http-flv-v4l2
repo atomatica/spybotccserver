@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# Capture stream from input 2 of video0 using v4l2
+# Convert stream to Flash video
+# Stream output over HTTP
+#
+cvlc v4l2:// :v4l2-dev="/dev/video0" :v4l2-input=2 :v4l2-standard=3 :v4l2-adev="hw" --sout '#transcode{vcodec=FLV1,acodec=mp3}:std{access=http,dst=0.0.0.0:8000/stream.flv}' --ttl 14
+
