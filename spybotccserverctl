@@ -3,7 +3,7 @@
 # Spybot Command and Control Server controller script
 #
 NAME=spybotccserverctl
-DAEMON=./spybotccserverd.py
+DAEMON=/usr/local/lib/spybotccserver/spybotccserverd.py
 DESC="Spybot Command and Control Server"
 
 test -f $DAEMON || exit 1
