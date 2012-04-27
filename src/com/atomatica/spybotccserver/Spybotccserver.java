@@ -3,15 +3,13 @@ package com.atomatica.spybotccserver;
 import java.io.*;
 import java.net.*;
 
-public class Server {
+public class Spybotccserver {
+    private Spybotccserver spybotccserver;
     private ObjectOutputStream output;
     private ObjectInputStream input;
     private ServerSocket server;
     private Socket connection;
     private int counter = 1;
-
-    public Server() {
-    }
 
     // set up and run server 
     public void runServer() {
@@ -119,8 +117,19 @@ public class Server {
         }
     }
 
-    public static void main(String args[]) {
-        Server server = new Server();
-        server.runServer();
+    public void init(String args[]) {
+        spybotccserver = new Spybotccserver();
+    }
+    
+    public void start() {
+        spybotccserver.runServer();
+    }
+    
+    public void stop() {
+        spybotccserver.closeConnection();
+    }
+    
+    public void destroy() {
+        spybotccserver = null;
     }
 }
