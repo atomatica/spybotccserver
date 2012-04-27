@@ -78,7 +78,6 @@ public class Server {
                 message = (String)input.readObject();
                 System.out.println("\nClient> " + message);
                 sendData("LED1");
-                
             }
 
             // catch problems reading from client
