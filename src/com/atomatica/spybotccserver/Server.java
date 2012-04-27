@@ -17,14 +17,13 @@ public class Server {
     public void runServer() {
         // set up server to receive connections; process connections
         try {
-            // Step 1: Create a ServerSocket.
             server = new ServerSocket(9103, 100);
 
             while (true) {
                 try {
-                    waitForConnection(); // Step 2: Wait for a connection.
-                    getStreams();        // Step 3: Get input & output streams.
-                    processConnection(); // Step 4: Process connection.
+                    waitForConnection();
+                    getStreams();
+                    processConnection();
                 }
 
                 // process EOFException when client closes connection 
@@ -33,7 +32,7 @@ public class Server {
                 }
 
                 finally {
-                    closeConnection();   // Step 5: Close connection.
+                    closeConnection();
                     ++counter;
                 }
             }
@@ -47,7 +46,7 @@ public class Server {
 
     // wait for connection to arrive, then display connection info
     private void waitForConnection() throws IOException {
-        System.out.println("Waiting for connection\n");
+        System.out.println("Waiting for connection");
         connection = server.accept();      
         System.out.println("Connection " + counter + " received from: " +
                 connection.getInetAddress().getHostName());
@@ -64,33 +63,38 @@ public class Server {
         // set up input stream for objects
         input = new ObjectInputStream(connection.getInputStream());
 
-        System.out.println("\nGot I/O streams\n");
+        System.out.println("Got I/O streams");
     }
 
     // process connection with client
     private void processConnection() throws IOException {
         // send connection successful message to client
-        String message = "Connection successful";
-        sendData(message);
+        String messageIn = "";
+        String messageOut = "SUCCESS";
+        sendMessage(messageOut);
 
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        
         do {
             try {
-                message = (String)input.readObject();
-                System.out.println("\nClient> " + message);
-                sendData("LED1");
+                messageIn = (String)input.readObject();
+                System.out.println("Client> " + messageIn);
+                System.out.print("Server> ");
+                messageOut = reader.readLine();
+                sendMessage(messageOut);
             }
 
             // catch problems reading from client
             catch (ClassNotFoundException classNotFoundException) {
-                System.out.println("\nUnknown object type received");
+                System.out.println("Unknown object type received");
             }
 
-        } while (!message.equals("TERMINATE"));
+        } while (!messageIn.equals("TERMINATE"));
     }
 
     // close streams and socket
     private void closeConnection() {
-        System.out.println("\nTerminating connection\n");
+        System.out.println("Terminating connection");
 
         try {
             output.close();
@@ -104,11 +108,10 @@ public class Server {
     }
 
     // send message to client
-    private void sendData(String message) {
+    private void sendMessage(String message) {
         try {
-            output.writeObject( message);
+            output.writeObject(message);
             output.flush();
-            System.out.println("\nServer> " + message);
         }
 
         // process problems sending object
