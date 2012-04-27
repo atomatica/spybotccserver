@@ -18,7 +18,7 @@ class Server(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     
     def process_request(self, request, client_address):
         """Start a new thread to process the request."""
-        self.logger.info("Handling request (%s, %s)", request, client_address)
+        self.logger.info("Handling request from %s", client_address)
         t = threading.Thread(target = self.process_request_thread,
                              args = (request, client_address))
         if self.daemon_threads:
@@ -27,6 +27,7 @@ class Server(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 class ServerListener(SocketServer.BaseRequestHandler):
     def handle(self):
-        data = self.request.recv(1024)
-        response = "OK: " + data
-        self.request.send(response)
+        for i in range(0,1000):
+            data = self.request.recv(1024)
+            #response = "OK: " + data
+            self.request.send("led1\n")
