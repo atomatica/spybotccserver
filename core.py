@@ -97,7 +97,7 @@ class Core:
         # Create server
         self.logger.debug("Starting threaded Server.")
         HOST, PORT = "", 9103
-        server = Server((HOST, PORT), ServerListener)
+        server = Server((HOST, PORT), self.loghandler)
         serverThread = threading.Thread(target=server.serve_forever)
         # Set main server thread as daemon thread to ensure all server threads are daemon threads
         serverThread.setDaemon(True)
