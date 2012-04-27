@@ -4,7 +4,7 @@
 #
 NAME=spybotccserverctl
 DAEMON=jsvc
-JAR=/usr/local/lib/spybotccserver/spybotccserver.jar
+JAR=/usr/local/lib/spybotccserver/Spybotccserver.jar
 CLASS=Server
 DESC="Spybot Command and Control Server"
 

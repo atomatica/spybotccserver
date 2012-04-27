@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.*;
 
 public class Spybotccserver {
-    private Spybotccserver spybotccserver;
     private ObjectOutputStream output;
     private ObjectInputStream input;
     private ServerSocket server;
@@ -118,18 +117,21 @@ public class Spybotccserver {
     }
 
     public void init(String args[]) {
-        spybotccserver = new Spybotccserver();
     }
     
     public void start() {
-        spybotccserver.runServer();
+        runServer();
     }
     
     public void stop() {
-        spybotccserver.closeConnection();
+        closeConnection();
     }
     
     public void destroy() {
-        spybotccserver = null;
+    }
+    
+    public static void main(String args[]) {
+        Spybotccserver spybotccserver = new Spybotccserver();
+        spybotccserver.runServer();
     }
 }
