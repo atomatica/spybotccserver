@@ -3,15 +3,17 @@
 # Spybot Command and Control Server controller script
 #
 NAME=spybotccserverctl
-DAEMON=com.atomatica.spybotccserver.Server
+DAEMON=jsvc
+JAR=/usr/local/lib/spybotccserver/spybotccserver.jar
+CLASS=Server
 DESC="Spybot Command and Control Server"
 
-#test -f $DAEMON || exit 1
+test -f $JAR || exit 1
 
 case "$1" in
   start)
     echo "Starting $DESC"
-    java $DAEMON
+    $DAEMON -home /usr/lib/jvm/default-java -classpath $JAR $CLASS
     ;;
   stop)
     echo "Stopping $DESC"
