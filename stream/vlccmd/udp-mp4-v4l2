@@ -1,8 +1,0 @@
-#!/bin/sh
-#
-# Capture stream from input 2 of video0 using v4l2
-# Convert stream to MPEG-4
-# Stream output over UDP
-#
-cvlc v4l2:// :v4l2-dev="/dev/video0" :v4l2-input=2 :v4l2-standard=3 :v4l2-adev="hw" --sout '#transcode{vcodec=mp4v,acodec=mp4a,vb=3000,ab=256,venc=ffmpeg{keyint=80,hurry-up,vt=800000}}:std{access=udp,mux=ts,dst=140.247.10.14:8000}' --ttl 14
-
