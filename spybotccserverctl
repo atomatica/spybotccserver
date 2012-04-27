@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Spybot Command and Control Server controller script
+#
+NAME=spybotccserverctl
+DAEMON=com.atomatica.spybotccserver.Server
+DESC="Spybot Command and Control Server"
+
+#test -f $DAEMON || exit 1
+
+case "$1" in
+  start)
+    echo "Starting $DESC"
+    java $DAEMON
+    ;;
+  stop)
+    echo "Stopping $DESC"
+    $DAEMON stop
+    ;;
+  restart)
+    echo "Restarting $DESC"
+    $DAEMON restart
+    ;;
+  *)
+    echo "usage: $NAME start|stop|restart"
+    exit 2
+    ;;
+esac
+
+exit 0
