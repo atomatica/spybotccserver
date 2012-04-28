@@ -2,31 +2,47 @@
 #
 # Spybot Command and Control Server controller script
 #
-NAME=spybotccserverctl
-DAEMON=jsvc
-JAR=/usr/local/lib/spybotccserver/Spybotccserver.jar
-CLASS=Server
-DESC="Spybot Command and Control Server"
 
-test -f $JAR || exit 1
+NAME=spybotccserverctl
+DESC="Spybot Command and Control Server"
+EXEC=/usr/bin/jsvc
+CLASSPATH=/usr/local/lib/spybotccserver/Spybotccserver.jar
+CLASS=com.atomatica.spybotccserver.Spybotccserver
+JAVA_HOME=/usr/lib/jvm/default-java
+USER=root
+PID=/tmp/example.pid
+LOG_OUT=/var/log/spybotccserver.log
+LOG_ERR=/var/log/spybotccserver-error.log
+
+test -f $EXEC || exit 1
+
+do_exec() {
+    $EXEC -home "$JAVA_HOME" -cp $CLASS_PATH -user $USER -outfile $LOG_OUT -errfile $LOG_ERR -pidfile $PID $1 $CLASS
+}
 
 case "$1" in
-  start)
-    echo "Starting $DESC"
-    $DAEMON -home /usr/lib/jvm/default-java -classpath $JAR $CLASS
-    ;;
-  stop)
-    echo "Stopping $DESC"
-    $DAEMON stop
-    ;;
-  restart)
-    echo "Restarting $DESC"
-    $DAEMON restart
-    ;;
-  *)
-    echo "usage: $NAME start|stop|restart"
-    exit 2
-    ;;
+    start)
+        echo "Starting $DESC"
+        do_exec
+        ;;
+    stop)
+        echo "Stopping $DESC"
+        do_exec "-stop"
+        ;;
+    restart)
+        if [ -f "$PID" ]; then
+            echo "Restarting $DESC"
+            do_exec "-stop"
+            do_exec
+        else
+            echo "$DESC not running, will do nothing"
+            exit 1
+        fi
+        ;;
+    *)
+        echo "usage: $NAME start|stop|restart" >&2
+        exit 2
+        ;;
 esac
 
 exit 0
