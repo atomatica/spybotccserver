@@ -6,18 +6,17 @@
 NAME=spybotccserverctl
 DESC="Spybot Command and Control Server"
 EXEC=/usr/bin/jsvc
-CLASSPATH=/usr/local/lib/spybotccserver/Spybotccserver.jar
+CLASSPATH=/usr/share/java/commons-daemon.jar:/usr/local/lib/spybotccserver/Spybotccserver.jar
 CLASS=com.atomatica.spybotccserver.Spybotccserver
-JAVA_HOME=/usr/lib/jvm/default-java
-USER=root
-PID=/tmp/example.pid
+JAVA_HOME=/usr/lib/jvm/jdk1.6.0_32
+PID=/tmp/spybotccserver.pid
 LOG_OUT=/var/log/spybotccserver.log
 LOG_ERR=/var/log/spybotccserver-error.log
 
 test -f $EXEC || exit 1
 
 do_exec() {
-    $EXEC -home "$JAVA_HOME" -cp $CLASS_PATH -user $USER -outfile $LOG_OUT -errfile $LOG_ERR -pidfile $PID $1 $CLASS
+    $EXEC -home "$JAVA_HOME" -cp $CLASSPATH -outfile $LOG_OUT -errfile $LOG_ERR -pidfile $PID $1 $CLASS
 }
 
 case "$1" in
