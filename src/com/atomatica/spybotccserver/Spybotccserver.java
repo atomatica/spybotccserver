@@ -6,11 +6,9 @@ import java.net.*;
 public class Spybotccserver {
     private int port = 9103;
     private int counter = 1;
-    private ServerSocket server;
-    
-    private ObjectOutputStream output;
-    private ObjectInputStream input;
-    private Socket connection;
+    private ServerSocket serverSocket;
+    private Socket clientSocket;
+    static RequestHandler handler[] = new RequestHandler[10];
     
     // entry point using JSVC
     public void init(String args[]) {
@@ -25,37 +23,32 @@ public class Spybotccserver {
     
     // set up and run server 
     public void run() {
-        // set up server to receive connections; process connections
         try {
-            server = new ServerSocket(port, 100);
+            serverSocket = new ServerSocket(port, 100);
 
             while (true) {
                 try {
                     waitForConnection();
-                    getStreams();
-                    processConnection();
                 }
 
                 // process EOFException when client closes connection 
-                catch (EOFException eofException) {
+                catch (EOFException e) {
                     System.out.println("Server terminated connection");
                 }
 
                 finally {
-                    closeConnection();
                     ++counter;
                 }
             }
         }
-
+        
         // process problems with I/O
-        catch (IOException ioException) {
-            ioException.printStackTrace();
+        catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     public void stop() {
-        closeConnection();
     }
     
     public void destroy() {
@@ -64,21 +57,68 @@ public class Spybotccserver {
     // wait for connection to arrive, then display connection info
     private void waitForConnection() throws IOException {
         System.out.println("Waiting for connection");
-        connection = server.accept();      
+        clientSocket = serverSocket.accept();      
         System.out.println("Connection " + counter + " received from: " +
-                connection.getInetAddress().getHostName());
+                clientSocket.getInetAddress().getHostName());
+        for (int i = 0; i <= 9; i++){
+            if(handler[i] == null) {
+                (handler[i] = new RequestHandler(clientSocket, handler)).start();
+                break;
+            }
+        }
     }
+    
+    public static void main(String args[]) {
+        System.out.println("This program must be run as a daemon using JSVC.");
+    }
+}
 
+class RequestHandler implements Runnable {
+    private RequestHandler handler[];
+    private Socket clientSocket;
+    private ObjectOutputStream output;
+    private ObjectInputStream input;
+    
+    public RequestHandler(Socket clientSocket, RequestHandler handler[]) {
+        this.clientSocket = clientSocket;
+        this.handler = handler;
+    }
+    
+    public void start() {
+        
+    }
+    
+    public void run() {
+        try {
+            getStreams();
+            processConnection();
+        }
+        
+        // process EOFException when client closes connection 
+        catch (EOFException e) {
+            System.out.println("Server terminated connection");
+        }
+
+        // process problems with I/O
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        finally {
+            closeConnection();
+        }
+    }
+    
     // get streams to send and receive data
     private void getStreams() throws IOException {
         // set up output stream for objects
-        output = new ObjectOutputStream(connection.getOutputStream());
+        output = new ObjectOutputStream(clientSocket.getOutputStream());
         
         // flush output buffer to send header information
         output.flush();
 
         // set up input stream for objects
-        input = new ObjectInputStream(connection.getInputStream());
+        input = new ObjectInputStream(clientSocket.getInputStream());
 
         System.out.println("Got I/O streams");
     }
@@ -116,7 +156,7 @@ public class Spybotccserver {
         try {
             output.close();
             input.close();
-            connection.close();
+            clientSocket.close();
         }
         
         catch(IOException e) {
@@ -134,15 +174,5 @@ public class Spybotccserver {
         // process problems sending object
         catch (IOException e) {
         }
-    }
-    
-    public static void main(String args[]) {
-        System.out.println("This program must be run as a daemon using JSVC.");
-    }
-}
-
-class RequestHandler implements Runnable {
-    public void run() {
-        
     }
 }
