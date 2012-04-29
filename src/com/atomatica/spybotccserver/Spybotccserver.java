@@ -75,6 +75,7 @@ public class Spybotccserver {
 
 class RequestHandler implements Runnable {
     private RequestHandler handler[];
+    private Thread clientThread;
     private Socket clientSocket;
     private ObjectOutputStream output;
     private ObjectInputStream input;
@@ -85,7 +86,11 @@ class RequestHandler implements Runnable {
     }
     
     public void start() {
-        
+        // create thread
+        if (clientThread == null) {
+            clientThread = new Thread(this);
+            clientThread.start();
+        }
     }
     
     public void run() {
