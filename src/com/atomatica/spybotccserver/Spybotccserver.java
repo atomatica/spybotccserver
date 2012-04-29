@@ -3,17 +3,30 @@ package com.atomatica.spybotccserver;
 import java.io.*;
 import java.net.*;
 
-public class Spybotccserver {
+public class Spybotccserver implements Runnable {
     private int port = 9103;
     private int counter = 1;
+    private int maxRequests = 10;
     private ServerSocket serverSocket;
     private Socket clientSocket;
-    static RequestHandler handler[] = new RequestHandler[10];
+    private RequestHandler handlers[];
     
     // entry point using JSVC
     public void init(String args[]) {
         if (args.length == 1) {
             port = Integer.valueOf(args[0]).intValue();
+        }
+        
+        handlers = new RequestHandler[maxRequests];
+        
+        try {
+            serverSocket = new ServerSocket(port, 100);
+            System.out.println("Initialized Spybot Command and Control Server on port " + port);
+        }
+        
+        catch (IOException e) {
+            System.err.println("Error creating server socket");
+            System.exit(1);
         }
     }
     
@@ -21,51 +34,40 @@ public class Spybotccserver {
         run();
     }
     
-    // set up and run server 
     public void run() {
-        try {
-            serverSocket = new ServerSocket(port, 100);
-
-            while (true) {
-                try {
-                    waitForConnection();
-                }
-
-                // process EOFException when client closes connection 
-                catch (EOFException e) {
-                    System.out.println("Server terminated connection");
-                }
-
-                finally {
-                    ++counter;
+        while (true) {
+            try {
+                clientSocket = serverSocket.accept();
+                System.out.println("Connection " + counter + " received from: " +
+                        clientSocket.getInetAddress().getHostName());
+                for (int i = 0; i < maxRequests; i++){
+                    if (handlers[i] == null) {
+                        (handlers[i] = new RequestHandler(clientSocket, handlers)).start();
+                        break;
+                    }
                 }
             }
-        }
-        
-        // process problems with I/O
-        catch (IOException e) {
-            e.printStackTrace();
+            
+            catch (IOException e) {
+                System.err.println("Error accepting connection from: " +
+                        clientSocket.getInetAddress().getHostName());
+            }
         }
     }
 
     public void stop() {
+        try {
+            serverSocket.close();
+        }
+        
+        catch (IOException e) {
+            System.err.println("Error closing server socket");
+            System.exit(1);
+        }
     }
     
     public void destroy() {
-    }
-    
-    // wait for connection to arrive, then display connection info
-    private void waitForConnection() throws IOException {
-        System.out.println("Waiting for connection");
-        clientSocket = serverSocket.accept();      
-        System.out.println("Connection " + counter + " received from: " +
-                clientSocket.getInetAddress().getHostName());
-        for (int i = 0; i <= 9; i++){
-            if(handler[i] == null) {
-                (handler[i] = new RequestHandler(clientSocket, handler)).start();
-                break;
-            }
-        }
+        serverSocket = null;
     }
     
     public static void main(String args[]) {
@@ -74,29 +76,59 @@ public class Spybotccserver {
 }
 
 class RequestHandler implements Runnable {
-    private RequestHandler handler[];
+    private RequestHandler handlers[];
     private Thread clientThread;
     private Socket clientSocket;
-    private ObjectOutputStream output;
     private ObjectInputStream input;
+    private ObjectOutputStream output;
     
-    public RequestHandler(Socket clientSocket, RequestHandler handler[]) {
+    public RequestHandler(Socket clientSocket, RequestHandler handlers[]) {
         this.clientSocket = clientSocket;
-        this.handler = handler;
+        this.handlers = handlers;
+        
+        try {
+            output = new ObjectOutputStream(clientSocket.getOutputStream());
+            output.flush();
+            input = new ObjectInputStream(clientSocket.getInputStream());
+            System.out.println("RequestHandler thread handling request from: " +
+                    clientSocket.getInetAddress().getHostName());
+        }
+        
+        catch (IOException e) {
+            System.err.println("Error getting I/O streams for client connection");
+        }
     }
     
     public void start() {
-        // create thread
         if (clientThread == null) {
             clientThread = new Thread(this);
+            clientThread.setDaemon(true);
             clientThread.start();
         }
     }
     
     public void run() {
         try {
-            getStreams();
-            processConnection();
+            String messageIn = "";
+            String messageOut = "SUCCESS";
+            sendMessage(messageOut);
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+            
+            do {
+                try {
+                    messageIn = (String)input.readObject();
+                    System.out.println("Client> " + messageIn);
+                    System.out.print("Server> ");
+                    messageOut = reader.readLine();
+                    sendMessage(messageOut);
+                }
+
+                catch (ClassNotFoundException classNotFoundException) {
+                    System.out.println("Unknown object type received");
+                }
+
+            } while (!messageIn.equals("TERMINATE"));
         }
         
         // process EOFException when client closes connection 
@@ -110,62 +142,16 @@ class RequestHandler implements Runnable {
         }
 
         finally {
-            closeConnection();
-        }
-    }
-    
-    // get streams to send and receive data
-    private void getStreams() throws IOException {
-        // set up output stream for objects
-        output = new ObjectOutputStream(clientSocket.getOutputStream());
-        
-        // flush output buffer to send header information
-        output.flush();
-
-        // set up input stream for objects
-        input = new ObjectInputStream(clientSocket.getInputStream());
-
-        System.out.println("Got I/O streams");
-    }
-
-    // process connection with client
-    private void processConnection() throws IOException {
-        // send connection successful message to client
-        String messageIn = "";
-        String messageOut = "SUCCESS";
-        sendMessage(messageOut);
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        
-        do {
             try {
-                messageIn = (String)input.readObject();
-                System.out.println("Client> " + messageIn);
-                System.out.print("Server> ");
-                messageOut = reader.readLine();
-                sendMessage(messageOut);
+                output.close();
+                input.close();
+                clientSocket.close();
+                System.out.println("Terminated client connection");
             }
-
-            // catch problems reading from client
-            catch (ClassNotFoundException classNotFoundException) {
-                System.out.println("Unknown object type received");
+            
+            catch(IOException e) {
+                System.err.println("Error closing client socket");
             }
-
-        } while (!messageIn.equals("TERMINATE"));
-    }
-
-    // close streams and socket
-    private void closeConnection() {
-        System.out.println("Terminating connection");
-
-        try {
-            output.close();
-            input.close();
-            clientSocket.close();
-        }
-        
-        catch(IOException e) {
-            e.printStackTrace();
         }
     }
 
