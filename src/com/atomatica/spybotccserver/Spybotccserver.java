@@ -38,11 +38,11 @@ public class Spybotccserver implements Runnable {
         while (true) {
             try {
                 clientSocket = serverSocket.accept();
-                System.out.println("Connection " + counter + " received from: " +
-                        clientSocket.getInetAddress().getHostName());
+                String clientName = clientSocket.getInetAddress().getHostName();
+                System.out.println("Connection " + counter + " received from: " + clientName);
                 for (int i = 0; i < maxRequests; i++){
                     if (handlers[i] == null) {
-                        (handlers[i] = new RequestHandler(clientSocket, handlers)).start();
+                        (handlers[i] = new RequestHandler(clientName, clientSocket, handlers)).start();
                         break;
                     }
                 }
@@ -76,13 +76,15 @@ public class Spybotccserver implements Runnable {
 }
 
 class RequestHandler implements Runnable {
-    private RequestHandler handlers[];
-    private Thread clientThread;
+    private Thread thread;
+    private String clientName;
     private Socket clientSocket;
+    private RequestHandler handlers[];
     private ObjectInputStream input;
     private ObjectOutputStream output;
     
-    public RequestHandler(Socket clientSocket, RequestHandler handlers[]) {
+    public RequestHandler(String clientName, Socket clientSocket, RequestHandler handlers[]) {
+        this.clientName = clientName;
         this.clientSocket = clientSocket;
         this.handlers = handlers;
         
@@ -90,55 +92,54 @@ class RequestHandler implements Runnable {
             output = new ObjectOutputStream(clientSocket.getOutputStream());
             output.flush();
             input = new ObjectInputStream(clientSocket.getInputStream());
-            System.out.println("RequestHandler thread handling request from: " +
-                    clientSocket.getInetAddress().getHostName());
+            System.out.println("RequestHandler thread handling request from: " + clientName);
         }
         
         catch (IOException e) {
-            System.err.println("Error getting I/O streams for client connection");
+            System.err.println("Error getting I/O streams for client: " + clientName);
         }
     }
     
     public void start() {
-        if (clientThread == null) {
-            clientThread = new Thread(this);
-            clientThread.setDaemon(true);
-            clientThread.start();
+        if (thread == null) {
+            thread = new Thread(this, clientName);
+            thread.setDaemon(true);
+            thread.start();
         }
     }
     
     public void run() {
         try {
-            String messageIn = "";
-            String messageOut = "SUCCESS";
-            sendMessage(messageOut);
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+            String message = "";
+            output.writeObject("SUCCESS");
+            output.flush();
             
             do {
                 try {
-                    messageIn = (String)input.readObject();
-                    System.out.println("Client> " + messageIn);
-                    System.out.print("Server> ");
-                    messageOut = reader.readLine();
-                    sendMessage(messageOut);
+                    message = (String)input.readObject();
+                    System.out.println("Client " + clientName + "> " + message);
+                    
+                    for (int i = 0; i < handlers.length; i++) {
+                        if (handlers[i] != null & handlers[i] != this) {
+                            handlers[i].output.writeObject(message);
+                            handlers[i].output.flush();
+                        }
+                    }
                 }
 
                 catch (ClassNotFoundException classNotFoundException) {
-                    System.out.println("Unknown object type received");
+                    System.err.println("Unknown object type received");
                 }
 
-            } while (!messageIn.equals("TERMINATE"));
+            } while (!message.equals("TERMINATE"));
         }
         
-        // process EOFException when client closes connection 
         catch (EOFException e) {
-            System.out.println("Server terminated connection");
+            System.out.println("Client " + clientName + " closed connection");
         }
 
-        // process problems with I/O
         catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error communicating with client: " + clientName);
         }
 
         finally {
@@ -146,24 +147,20 @@ class RequestHandler implements Runnable {
                 output.close();
                 input.close();
                 clientSocket.close();
-                System.out.println("Terminated client connection");
+                System.out.println("Terminated connection with client: " + clientName);
             }
             
             catch(IOException e) {
-                System.err.println("Error closing client socket");
+                System.err.println("Error closing socket for client: " + clientName);
             }
-        }
-    }
-
-    // send message to client
-    private void sendMessage(String message) {
-        try {
-            output.writeObject(message);
-            output.flush();
-        }
-
-        // process problems sending object
-        catch (IOException e) {
+            
+            finally {
+                for (int i = 0; i < handlers.length; i++) {
+                    if (handlers[i] == this) {
+                        handlers[i] = null;
+                    }
+                }
+            }
         }
     }
 }
