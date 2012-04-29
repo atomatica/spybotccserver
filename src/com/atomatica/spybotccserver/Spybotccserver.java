@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.*;
 
 public class Spybotccserver {
+    private int port;
     private ObjectOutputStream output;
     private ObjectInputStream input;
     private ServerSocket server;
@@ -14,7 +15,7 @@ public class Spybotccserver {
     public void runServer() {
         // set up server to receive connections; process connections
         try {
-            server = new ServerSocket(9103, 100);
+            server = new ServerSocket(port, 100);
 
             while (true) {
                 try {
@@ -117,6 +118,11 @@ public class Spybotccserver {
     }
 
     public void init(String args[]) {
+        port = 9103;
+        
+        if (args.length == 1) {
+            port=Integer.valueOf(args[0]).intValue();
+        }
     }
     
     public void start() {
@@ -131,7 +137,12 @@ public class Spybotccserver {
     }
     
     public static void main(String args[]) {
-        Spybotccserver spybotccserver = new Spybotccserver();
-        spybotccserver.runServer();
+        System.out.println("This program must be run as a daemon using JSVC.");
+    }
+}
+
+class RequestHandler implements Runnable {
+    public void run() {
+        
     }
 }
