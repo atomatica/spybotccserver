@@ -163,4 +163,10 @@ class RequestHandler implements Runnable {
             }
         }
     }
+    
+    public void stop() {
+        if ((thread != null) && thread.isAlive()) {
+            thread = null;
+        }
+    }
 }
