@@ -4,15 +4,27 @@ import java.io.*;
 import java.net.*;
 
 public class Spybotccserver {
-    private int port;
+    private int port = 9103;
+    private int counter = 1;
+    private ServerSocket server;
+    
     private ObjectOutputStream output;
     private ObjectInputStream input;
-    private ServerSocket server;
     private Socket connection;
-    private int counter = 1;
-
+    
+    // entry point using JSVC
+    public void init(String args[]) {
+        if (args.length == 1) {
+            port = Integer.valueOf(args[0]).intValue();
+        }
+    }
+    
+    public void start() {
+        run();
+    }
+    
     // set up and run server 
-    public void runServer() {
+    public void run() {
         // set up server to receive connections; process connections
         try {
             server = new ServerSocket(port, 100);
@@ -42,6 +54,13 @@ public class Spybotccserver {
         }
     }
 
+    public void stop() {
+        closeConnection();
+    }
+    
+    public void destroy() {
+    }
+    
     // wait for connection to arrive, then display connection info
     private void waitForConnection() throws IOException {
         System.out.println("Waiting for connection");
@@ -115,25 +134,6 @@ public class Spybotccserver {
         // process problems sending object
         catch (IOException e) {
         }
-    }
-
-    public void init(String args[]) {
-        port = 9103;
-        
-        if (args.length == 1) {
-            port=Integer.valueOf(args[0]).intValue();
-        }
-    }
-    
-    public void start() {
-        runServer();
-    }
-    
-    public void stop() {
-        closeConnection();
-    }
-    
-    public void destroy() {
     }
     
     public static void main(String args[]) {
