@@ -5,7 +5,6 @@ import java.net.*;
 
 public class Spybotccserver implements Runnable {
     private int port = 9103;
-    private int counter = 1;
     private int maxRequests = 10;
     private ServerSocket serverSocket;
     private Socket clientSocket;
@@ -39,7 +38,7 @@ public class Spybotccserver implements Runnable {
             try {
                 clientSocket = serverSocket.accept();
                 String clientName = clientSocket.getInetAddress().getHostName();
-                System.out.println("Connection " + counter + " received from: " + clientName);
+                System.out.println("Connection received from: " + clientName);
                 for (int i = 0; i < maxRequests; i++){
                     if (handlers[i] == null) {
                         (handlers[i] = new RequestHandler(clientName, clientSocket, handlers)).start();
@@ -49,8 +48,7 @@ public class Spybotccserver implements Runnable {
             }
             
             catch (IOException e) {
-                System.err.println("Error accepting connection from: " +
-                        clientSocket.getInetAddress().getHostName());
+                System.err.println("Error accepting connection from: " + clientSocket.getInetAddress().getHostName());
             }
         }
     }
