@@ -12,6 +12,7 @@ public class Spybotccserver implements Daemon {
     private RequestHandler handlers[];
     
     // entry point using JSVC
+    @Override
     public void init(DaemonContext dc) {
         String args[] = dc.getArguments();
         init(args);
@@ -26,7 +27,7 @@ public class Spybotccserver implements Daemon {
         
         try {
             serverSocket = new ServerSocket(port, 100);
-            System.out.println("Initialized Spybot Command and Control Server on port " + port);
+            System.out.println("Spybot Command and Control Server accepting connections on port " + port);
         }
         
         catch (IOException e) {
@@ -34,7 +35,8 @@ public class Spybotccserver implements Daemon {
             System.exit(1);
         }
     }
-    
+
+    @Override
     public void start() {
         run();
     }
@@ -47,7 +49,9 @@ public class Spybotccserver implements Daemon {
                 System.out.println("Connection received from: " + clientName);
                 for (int i = 0; i < maxRequests; i++){
                     if (handlers[i] == null) {
-                        (handlers[i] = new RequestHandler(clientName, clientSocket, handlers)).start();
+                        handlers[i] = new RequestHandler(clientName, clientSocket, handlers);
+                        handlers[i].setDaemon(true);
+                        handlers[i].start();
                         break;
                     }
                 }
@@ -59,6 +63,7 @@ public class Spybotccserver implements Daemon {
         }
     }
 
+    @Override
     public void stop() {
         try {
             serverSocket.close();
@@ -69,7 +74,8 @@ public class Spybotccserver implements Daemon {
             System.exit(1);
         }
     }
-    
+
+    @Override
     public void destroy() {
         serverSocket = null;
     }
@@ -81,8 +87,7 @@ public class Spybotccserver implements Daemon {
     }
 }
 
-class RequestHandler implements Runnable {
-    private Thread thread;
+class RequestHandler extends Thread {
     private String clientName;
     private Socket clientSocket;
     private RequestHandler handlers[];
@@ -106,14 +111,7 @@ class RequestHandler implements Runnable {
         }
     }
     
-    public void start() {
-        if (thread == null) {
-            thread = new Thread(this, clientName);
-            thread.setDaemon(true);
-            thread.start();
-        }
-    }
-    
+    @Override
     public void run() {
         try {
             String message = "";
@@ -134,7 +132,7 @@ class RequestHandler implements Runnable {
                 }
 
                 catch (ClassNotFoundException classNotFoundException) {
-                    System.err.println("Unknown object type received");
+                    System.err.println("Unknown object type received from client: " + clientName);
                 }
 
             } while (!message.equals("TERMINATE"));
@@ -153,7 +151,7 @@ class RequestHandler implements Runnable {
                 output.close();
                 input.close();
                 clientSocket.close();
-                System.out.println("Terminated connection with client: " + clientName);
+                System.out.println("Closed socket with client: " + clientName);
             }
             
             catch(IOException e) {
@@ -167,12 +165,6 @@ class RequestHandler implements Runnable {
                     }
                 }
             }
-        }
-    }
-    
-    public void stop() {
-        if ((thread != null) && thread.isAlive()) {
-            thread = null;
         }
     }
 }

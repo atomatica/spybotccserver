@@ -6,10 +6,10 @@
 NAME=spybotccserverctl
 DESC="Spybot Command and Control Server"
 EXEC=/usr/bin/jsvc
-CLASSPATH=/usr/share/java/commons-daemon.jar:/usr/local/lib/spybotccserver/spybotccserver.jar
+CLASSPATH=/usr/local/lib/spybotccserver/spybotccserver.jar
 CLASS=com.atomatica.spybotccserver.Spybotccserver
 JAVA_HOME=/usr/lib/jvm/jdk1.6.0_32
-PID=/tmp/spybotccserver.pid
+PID=/var/run/spybotccserver.pid
 LOG_OUT=/var/log/spybotccserver.log
 LOG_ERR=/var/log/spybotccserver-error.log
 
