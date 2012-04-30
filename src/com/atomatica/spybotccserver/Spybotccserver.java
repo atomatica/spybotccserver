@@ -2,8 +2,9 @@ package com.atomatica.spybotccserver;
 
 import java.io.*;
 import java.net.*;
+import org.apache.commons.daemon.*;
 
-public class Spybotccserver implements Runnable {
+public class Spybotccserver implements Daemon {
     private int port = 9103;
     private int counter = 1;
     private int maxRequests = 10;
@@ -71,7 +72,8 @@ public class Spybotccserver implements Runnable {
     }
     
     public static void main(String args[]) {
-        System.out.println("This program must be run as a daemon using JSVC.");
+        init(args);
+        start();
     }
 }
 
