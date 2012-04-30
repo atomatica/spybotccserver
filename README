@@ -2,9 +2,8 @@ Spybot Command and Control Protocol 1.0
 Verbs:
 ANNOUNCE
 CONTROL
-ACCEPT
-TERMINATE
 SEND
+TERMINATE
 
 Status codes:
 200 OK

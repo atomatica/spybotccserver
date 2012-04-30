@@ -14,7 +14,7 @@ public class Spybotccserver implements Daemon {
     protected ServerSocket serverSocket;
     protected Socket clientSocket;
     protected ExecutorService requestHandlerPool;
-    protected ArrayList<Spybot> spybots;
+    protected ArrayList<RequestHandler> spybots;
     
     // entry point using JSVC
     @Override
@@ -39,7 +39,7 @@ public class Spybotccserver implements Daemon {
         }
         
         requestHandlerPool = Executors.newCachedThreadPool();
-        spybots = new ArrayList<Spybot>();
+        spybots = new ArrayList<RequestHandler>();
     }
 
     @Override
@@ -93,10 +93,19 @@ public class Spybotccserver implements Daemon {
         protected BufferedReader input;
         protected PrintWriter output;
         protected Thread thread;
+
+        protected boolean isSpybot;
+        protected RequestHandler spybot;
+        protected RequestHandler controller;
+        protected String spybotName;
+        protected String spybotPassphrase;
         
         public RequestHandler(String clientName, Socket clientSocket) {
             this.clientName = clientName;
             this.clientSocket = clientSocket;
+            this.isSpybot = false;
+            this.spybot = null;
+            this.controller = null;
             
             try {
                 output = new PrintWriter(clientSocket.getOutputStream(), true);
@@ -128,38 +137,83 @@ public class Spybotccserver implements Daemon {
                         String[] tokens = message.split("\\s");
                         
                         if (tokens[0].equals("TERMINATE")) {
+                            if (isSpybot && controller != null) {
+                                controller.spybot = null;
+                                controller = null;
+                            }
+                            
+                            else if (spybot != null) {
+                                spybot.controller = null;
+                                spybot = null;
+                            }
+                            
                             break;
                         }
                         
                         else if (tokens[0].equals("ANNOUNCE")) {
-                            String spybotName = tokens[1];
+                            isSpybot = true;
+                            spybotName = tokens[1];
+                            spybotPassphrase = tokens[2];
                             synchronized (spybots) {
                                 // TODO: check if spybot name has already been used
-                                spybots.add(new Spybot(spybotName, this));
-                            }   
+                                spybots.add(this);
+                            }
+
+                            output.println(protocolHeader + "  200 OK");
                         }
                         
                         else if (tokens[0].equals("CONTROL")) {
                             String spybotName = tokens[1];
-                            Spybot spybot = null;
+                            RequestHandler spybot = null;
                             synchronized (spybots) {
-                                Iterator<Spybot> i = spybots.iterator();
+                                Iterator<RequestHandler> i = spybots.iterator();
                                 while (i.hasNext()) {
-                                    Spybot s = i.next();
-                                    if (s.name.equals(spybotName)) {
+                                    RequestHandler s = i.next();
+                                    if (s.spybotName.equals(spybotName)) {
                                         spybot = s;
                                         break;
                                     }
                                 }
                                 
-                                if (spybot == null) {
+                                if (spybot == null || spybot.controller != null) {
                                     output.println(protocolHeader + "  300 INVALID");
                                 }
                                 
                                 else {
-                                    String passphrase = tokens[2];
+                                    if (spybot.spybotPassphrase.equals(tokens[2])) {
+                                        this.spybot = spybot;
+                                        spybot.controller = this;
+                                        output.println(protocolHeader + "  200 OK");
+                                    }
+                                    
+                                    else {
+                                        output.println(protocolHeader + "  300 INVALID");
+                                    }
                                 }
                             }
+                        }
+                        
+                        else if (tokens[0].equals("SEND")) {
+                            RequestHandler target = null;
+                            if (isSpybot) {
+                                target = controller;
+                            }
+                            else {
+                                target = spybot;
+                            }
+                            
+                            if (target == null) {
+                                output.println(protocolHeader + "  300 INVALID");
+                            }
+                            
+                            else {
+                                target.output.println(message.substring(5));
+                                output.println(protocolHeader + "  200 OK");
+                            }
+                        }
+                        
+                        else {
+                            output.println(protocolHeader + "  300 INVALID");
                         }
                     }
                     
@@ -190,26 +244,5 @@ public class Spybotccserver implements Daemon {
                 }
             }
         }
-    }
-    
-    class Spybot {
-        protected String name;
-        protected RequestHandler requestHandler;
-        protected Spybotcontroller controller;
-        
-        public Spybot(String name, RequestHandler requestHandler) {
-            this.name = name;
-            this.requestHandler = requestHandler;
-            this.controller = null;
-        }
-        
-        public boolean login(String passphrase) {
-            requestHandler.output.println("login " + passphrase);
-            return false;
-        }
-    }
-    
-    class Spybotcontroller {
-        
     }
 }
