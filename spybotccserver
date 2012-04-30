@@ -3,7 +3,7 @@
 # Spybot Command and Control Server controller script
 #
 
-NAME=spybotccserverctl
+NAME=spybotccserver
 DESC="Spybot Command and Control Server"
 EXEC=/usr/bin/jsvc
 CLASSPATH=/usr/local/lib/spybotccserver/spybotccserver.jar
@@ -16,7 +16,7 @@ LOG_ERR=/var/log/spybotccserver-error.log
 test -f $EXEC || exit 1
 
 do_exec() {
-    $EXEC -home "$JAVA_HOME" -cp $CLASSPATH -outfile $LOG_OUT -errfile $LOG_ERR -pidfile $PID $1 $CLASS
+    $EXEC -home $JAVA_HOME -cp $CLASSPATH -procname $NAME -outfile $LOG_OUT -errfile $LOG_ERR -pidfile $PID $1 $CLASS
 }
 
 case "$1" in
