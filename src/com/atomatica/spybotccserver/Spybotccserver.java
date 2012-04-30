@@ -2,14 +2,15 @@ package com.atomatica.spybotccserver;
 
 import java.io.*;
 import java.net.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.commons.daemon.*;
 
 public class Spybotccserver implements Daemon {
-    private int port = 9103;
-    private int maxRequests = 10;
-    private ServerSocket serverSocket;
-    private Socket clientSocket;
-    private RequestHandler handlers[];
+    protected int port = 9103;
+    protected ServerSocket serverSocket;
+    protected Socket clientSocket;
+    protected ExecutorService requestHandlerPool;
     
     // entry point using JSVC
     @Override
@@ -23,8 +24,6 @@ public class Spybotccserver implements Daemon {
             port = Integer.valueOf(args[0]).intValue();
         }
         
-        handlers = new RequestHandler[maxRequests];
-        
         try {
             serverSocket = new ServerSocket(port, 100);
             System.out.println("Spybot Command and Control Server accepting connections on port " + port);
@@ -34,6 +33,8 @@ public class Spybotccserver implements Daemon {
             System.err.println("Error creating server socket");
             System.exit(1);
         }
+        
+        requestHandlerPool = Executors.newCachedThreadPool();
     }
 
     @Override
@@ -47,14 +48,7 @@ public class Spybotccserver implements Daemon {
                 clientSocket = serverSocket.accept();
                 String clientName = clientSocket.getInetAddress().getHostName();
                 System.out.println("Connection received from: " + clientName);
-                for (int i = 0; i < maxRequests; i++){
-                    if (handlers[i] == null) {
-                        handlers[i] = new RequestHandler(clientName, clientSocket, handlers);
-                        handlers[i].setDaemon(true);
-                        handlers[i].start();
-                        break;
-                    }
-                }
+                requestHandlerPool.execute(new RequestHandler(clientName, clientSocket));
             }
             
             catch (IOException e) {
@@ -87,17 +81,15 @@ public class Spybotccserver implements Daemon {
     }
 }
 
-class RequestHandler extends Thread {
-    private String clientName;
-    private Socket clientSocket;
-    private RequestHandler handlers[];
-    private ObjectInputStream input;
-    private ObjectOutputStream output;
+class RequestHandler implements Runnable {
+    protected String clientName;
+    protected Socket clientSocket;
+    protected ObjectInputStream input;
+    protected ObjectOutputStream output;
     
-    public RequestHandler(String clientName, Socket clientSocket, RequestHandler handlers[]) {
+    public RequestHandler(String clientName, Socket clientSocket) {
         this.clientName = clientName;
         this.clientSocket = clientSocket;
-        this.handlers = handlers;
         
         try {
             output = new ObjectOutputStream(clientSocket.getOutputStream());
@@ -123,12 +115,12 @@ class RequestHandler extends Thread {
                     message = (String)input.readObject();
                     System.out.println("Client " + clientName + "> " + message);
                     
-                    for (int i = 0; i < handlers.length; i++) {
+                    /*for (int i = 0; i < requestHandlerPool.length; i++) {
                         if (handlers[i] != null & handlers[i] != this) {
                             handlers[i].output.writeObject(message);
                             handlers[i].output.flush();
                         }
-                    }
+                    }*/
                 }
 
                 catch (ClassNotFoundException classNotFoundException) {
@@ -159,11 +151,11 @@ class RequestHandler extends Thread {
             }
             
             finally {
-                for (int i = 0; i < handlers.length; i++) {
+                /*for (int i = 0; i < handlers.length; i++) {
                     if (handlers[i] == this) {
                         handlers[i] = null;
                     }
-                }
+                }*/
             }
         }
     }
