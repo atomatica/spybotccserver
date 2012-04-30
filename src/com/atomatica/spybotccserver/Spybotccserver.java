@@ -110,7 +110,7 @@ public class Spybotccserver implements Daemon {
             try {
                 output = new PrintWriter(clientSocket.getOutputStream(), true);
                 input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                System.out.println("RequestHandler thread handling request from: " + clientName);
+                System.out.println("Accepted connection from: " + clientName);
             }
             
             catch (IOException e) {
@@ -130,6 +130,12 @@ public class Spybotccserver implements Daemon {
                 
                 while (!thread.isInterrupted()) {
                     message = input.readLine();
+                    
+                    if (message == null) {
+                        System.out.println("Connection interrupted with client: " + clientName);
+                        break;
+                    }
+                    
                     System.out.println(clientName + " - " + message);
                     
                     // parse message
@@ -137,14 +143,14 @@ public class Spybotccserver implements Daemon {
                         String[] tokens = message.split("\\s");
                         
                         if (tokens[0].equals("TERMINATE")) {
-                            if (isSpybot && controller != null) {
-                                controller.spybot = null;
-                                controller = null;
-                            }
-                            
-                            else if (spybot != null) {
-                                spybot.controller = null;
-                                spybot = null;
+                            synchronized (spybots) {
+                                if (isSpybot && controller != null) {
+                                    controller.clientSocket.shutdownInput();
+                                }
+                                
+                                else if (spybot != null) {
+                                    spybot.controller = null;
+                                }
                             }
                             
                             break;
@@ -223,10 +229,6 @@ public class Spybotccserver implements Daemon {
                 }
             }
             
-            catch (EOFException e) {
-                System.out.println("Client " + clientName + " closed connection");
-            }
-    
             catch (IOException e) {
                 System.err.println("Error communicating with client: " + clientName);
             }
@@ -236,11 +238,11 @@ public class Spybotccserver implements Daemon {
                     output.close();
                     input.close();
                     clientSocket.close();
-                    System.out.println("Closed socket with client: " + clientName);
+                    System.out.println("Closed connection with client: " + clientName);
                 }
                 
                 catch(IOException e) {
-                    System.err.println("Error closing socket for client: " + clientName);
+                    System.err.println("Error closing connection with client: " + clientName);
                 }
             }
         }
