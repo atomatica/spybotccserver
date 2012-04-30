@@ -12,6 +12,11 @@ public class Spybotccserver implements Daemon {
     private RequestHandler handlers[];
     
     // entry point using JSVC
+    public void init(DaemonContext dc) {
+        String args[] = dc.getArguments();
+        init(args);
+    }
+    
     public void init(String args[]) {
         if (args.length == 1) {
             port = Integer.valueOf(args[0]).intValue();
@@ -70,8 +75,9 @@ public class Spybotccserver implements Daemon {
     }
     
     public static void main(String args[]) {
-        init(args);
-        start();
+        Spybotccserver spybotccserver = new Spybotccserver();
+        spybotccserver.init(args);
+        spybotccserver.start();
     }
 }
 
