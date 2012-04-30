@@ -59,6 +59,13 @@ public class Spybotccserver implements Daemon {
 
     @Override
     public void stop() {
+        for (int i = 0; i < maxRequests; i++){
+            handlers[i] = null;
+        }
+    }
+
+    @Override
+    public void destroy() {
         try {
             serverSocket.close();
         }
@@ -67,10 +74,7 @@ public class Spybotccserver implements Daemon {
             System.err.println("Error closing server socket");
             System.exit(1);
         }
-    }
-
-    @Override
-    public void destroy() {
+        
         serverSocket = null;
     }
     
