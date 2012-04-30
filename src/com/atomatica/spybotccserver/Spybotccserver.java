@@ -86,8 +86,8 @@ public class Spybotccserver implements Daemon {
 class RequestHandler implements Runnable {
     protected String clientName;
     protected Socket clientSocket;
-    protected ObjectInputStream input;
-    protected ObjectOutputStream output;
+    protected BufferedReader input;
+    protected PrintWriter output;
     protected Thread thread;
     
     public RequestHandler(String clientName, Socket clientSocket) {
@@ -95,9 +95,8 @@ class RequestHandler implements Runnable {
         this.clientSocket = clientSocket;
         
         try {
-            output = new ObjectOutputStream(clientSocket.getOutputStream());
-            output.flush();
-            input = new ObjectInputStream(clientSocket.getInputStream());
+            output = new PrintWriter(clientSocket.getOutputStream(), true);
+            input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             System.out.println("RequestHandler thread handling request from: " + clientName);
         }
         
@@ -114,30 +113,22 @@ class RequestHandler implements Runnable {
         
         try {
             String message = "";
-            output.writeObject("SUCCESS");
-            output.flush();
+            output.println("SPYBOTCCP/1.0 " + InetAddress.getLocalHost().getHostName());
             
             while (!thread.isInterrupted()) {
-                try {
-                    message = (String)input.readObject();
-                    System.out.println("Client " + clientName + "> " + message);
-                    
-                    /*for (int i = 0; i < requestHandlerPool.length; i++) {
-                        if (handlers[i] != null & handlers[i] != this) {
-                            handlers[i].output.writeObject(message);
-                            handlers[i].output.flush();
-                        }
-                    }*/
-                    
-                    if (message.equals("TERMINATE")) {
-                        break;
+                message = input.readLine();
+                System.out.println("Client " + clientName + "> " + message);
+                
+                /*for (int i = 0; i < requestHandlerPool.length; i++) {
+                    if (handlers[i] != null & handlers[i] != this) {
+                        handlers[i].output.writeObject(message);
+                        handlers[i].output.flush();
                     }
+                }*/
+                
+                if (message.equals("TERMINATE")) {
+                    break;
                 }
-
-                catch (ClassNotFoundException classNotFoundException) {
-                    System.err.println("Unknown object type received from client: " + clientName);
-                }
-
             }
         }
         
