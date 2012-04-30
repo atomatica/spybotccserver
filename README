@@ -1,0 +1,13 @@
+Spybot Command and Control Protocol 1.0
+Verbs:
+ANNOUNCE
+CONTROL
+ACCEPT
+TERMINATE
+SEND
+
+Status codes:
+200 OK
+300 INVALID
+400 NORESPONSE
+500 ERROR
