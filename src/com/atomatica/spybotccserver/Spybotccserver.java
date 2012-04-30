@@ -59,9 +59,7 @@ public class Spybotccserver implements Daemon {
 
     @Override
     public void stop() {
-        for (int i = 0; i < maxRequests; i++){
-            handlers[i] = null;
-        }
+        requestHandlerPool.shutdownNow();
     }
 
     @Override
@@ -90,6 +88,7 @@ class RequestHandler implements Runnable {
     protected Socket clientSocket;
     protected ObjectInputStream input;
     protected ObjectOutputStream output;
+    protected Thread thread;
     
     public RequestHandler(String clientName, Socket clientSocket) {
         this.clientName = clientName;
@@ -109,12 +108,16 @@ class RequestHandler implements Runnable {
     
     @Override
     public void run() {
+        synchronized(this) {
+            thread = Thread.currentThread();
+        }
+        
         try {
             String message = "";
             output.writeObject("SUCCESS");
             output.flush();
             
-            do {
+            while (!thread.isInterrupted()) {
                 try {
                     message = (String)input.readObject();
                     System.out.println("Client " + clientName + "> " + message);
@@ -125,13 +128,17 @@ class RequestHandler implements Runnable {
                             handlers[i].output.flush();
                         }
                     }*/
+                    
+                    if (message.equals("TERMINATE")) {
+                        break;
+                    }
                 }
 
                 catch (ClassNotFoundException classNotFoundException) {
                     System.err.println("Unknown object type received from client: " + clientName);
                 }
 
-            } while (!message.equals("TERMINATE"));
+            }
         }
         
         catch (EOFException e) {
