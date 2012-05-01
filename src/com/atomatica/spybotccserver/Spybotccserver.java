@@ -125,12 +125,10 @@ public class Spybotccserver implements Daemon {
             }
             
             try {
-                String message = "";
                 output.println(protocolHeader + " " + InetAddress.getLocalHost().getHostName());
                 
                 while (!thread.isInterrupted()) {
-                    message = input.readLine();
-                    
+                    String message = input.readLine();
                     if (message == null) {
                         System.out.println("Connection interrupted with client: " + clientName);
                         break;
@@ -140,12 +138,16 @@ public class Spybotccserver implements Daemon {
                     
                     // parse message
                     try {
-                        String[] tokens = message.split("\\s");
+                        String tokens[] = message.split("\\s");
                         
                         if (tokens[0].equals("TERMINATE")) {
                             synchronized (spybots) {
-                                if (isSpybot && controller != null) {
-                                    controller.clientSocket.shutdownInput();
+                                if (isSpybot) {
+                                    spybots.remove(this);
+                                    
+                                    if (controller != null) {
+                                        controller.clientSocket.shutdownInput();
+                                    }
                                 }
                                 
                                 else if (spybot != null) {
@@ -165,7 +167,7 @@ public class Spybotccserver implements Daemon {
                                 spybots.add(this);
                             }
 
-                            output.println(protocolHeader + "  200 OK");
+                            output.println(protocolHeader + " 200 OK");
                         }
                         
                         else if (tokens[0].equals("CONTROL")) {
@@ -182,18 +184,18 @@ public class Spybotccserver implements Daemon {
                                 }
                                 
                                 if (spybot == null || spybot.controller != null) {
-                                    output.println(protocolHeader + "  300 INVALID");
+                                    output.println(protocolHeader + " 300 INVALID");
                                 }
                                 
                                 else {
                                     if (spybot.spybotPassphrase.equals(tokens[2])) {
                                         this.spybot = spybot;
                                         spybot.controller = this;
-                                        output.println(protocolHeader + "  200 OK");
+                                        output.println(protocolHeader + " 200 OK");
                                     }
                                     
                                     else {
-                                        output.println(protocolHeader + "  300 INVALID");
+                                        output.println(protocolHeader + " 300 INVALID");
                                     }
                                 }
                             }
@@ -209,22 +211,22 @@ public class Spybotccserver implements Daemon {
                             }
                             
                             if (target == null) {
-                                output.println(protocolHeader + "  300 INVALID");
+                                output.println(protocolHeader + " 300 INVALID");
                             }
                             
                             else {
                                 target.output.println(message.substring(5));
-                                output.println(protocolHeader + "  200 OK");
+                                output.println(protocolHeader + " 200 OK");
                             }
                         }
                         
                         else {
-                            output.println(protocolHeader + "  300 INVALID");
+                            output.println(protocolHeader + " 300 INVALID");
                         }
                     }
                     
                     catch (ArrayIndexOutOfBoundsException e) {
-                        output.println(protocolHeader + "  300 INVALID");
+                        output.println(protocolHeader + " 300 INVALID");
                     }
                 }
             }
